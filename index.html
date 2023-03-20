@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Let's Chat</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        .hidden{
+            display: none;
+        }
+        html, body {
+            margin: 0;
+            min-height: 100vh;
+            min-width: 160vh;
+            font-family: Roboto, Arial, sans-serif;
+            font-size: 14px;
+            color: #666;
+            background: rgb(238, 238, 238);
+            padding-left: 10px;
+        }
+        .error{
+            margin:auto;
+            text-align: center;
+            width: 300px;
+            height: 20px;
+            background-color:red;
+            color: white;
+            border-radius:2px;
+        }
+        #header{
+            margin-top: 20px;
+            color: #19404e;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        #login_btn,#reg_btn {
+            width: 90px;
+            height: 30px;
+            background-color: rgb(200, 228, 205);
+            border:none;
+            border-radius:3px;
+            cursor:pointer;
+        }
+        #room_selection_panel{
+            margin-bottom:10px;
+        }
+        #chat_log {
+            display: block;
+            width: 600px;
+            height: 300px;
+        }
+        #message{
+            margin-top: 10px;
+            width: 480px;
+        }
+        #send{
+            margin-top: 10px;
+            width: 117px;
+            background-color: #245269;
+            color:white;
+        }
+        #change_name{
+            float:right;
+            margin-top: -80px;
+            margin-right:20px;
+        }
+        #input_form{
+            margin-top: 15px;
+        }
+
+    </style>
+</head>
+
+<body>
+<div id="error" class='error hidden'></div>
+<h1 id="header" onclick="window.location.href='index.html'">Let's Chat</h1>
+
+<div id="name_panel">
+    <button id="login_btn">Login</button>
+    <button id="reg_btn">Register</button>
+    <div id="input_form" class="hidden">
+        <input type="text" id ="username" name="username" placeholder="Username"/><br><br>
+        <input type="password" id="password" name="password" class="" placeholder="Password"/><br><br>
+        <button id="form_btn">Button</button>
+    </div>
+</div>
+
+<div id="room_selection_panel" class="hidden">
+    <label for="room">Select Channel: </label><select id="room">
+    <option value="" hidden selected>Select</option>
+    <option value="1">#General</option>
+    <option value="2">#Webdev</option>
+    <option value="3">#Random Q/A</option>
+    </select>
+    <button id="room_btn">Enter</button>
+</div>
+
+<button id="change_name" class="hidden">Login as other user</button>
+
+<div id="chat_panel" class="hidden">
+    <label for="chat_log"></label><textarea readonly id="chat_log"></textarea>
+    <label for="message"></label><input type="text" id="message">
+    <button id="send">Send Message</button>
+</div>
+
+<script>
+    let user_name;
+    let room_id;
+
+    $(document).ready(()=>
+    {
+        if(get_cookie("PHPSESSID")) {
+            $.ajax({
+                url: 'get_session.php',
+                type: 'post',
+                success: (data) =>
+                {
+                    if (data !=="error") {
+                        console.log(data);
+                        user_name=data;
+                        $("#error").addClass('hidden');
+                        $("#name_panel").addClass('hidden');
+                        $("#room_selection_panel").removeClass('hidden');
+                        $("#change_name").removeClass('hidden');
+                    }
+                    else {
+                        $("#error").removeClass('hidden');
+                        $("#error").text("Something went wrong");
+                    }
+                }
+            });
+        }
+
+        $("#login_btn").click(()=> {
+            $("#input_form").removeClass("hidden");
+            $("#form_btn").text("Login");
+        });
+        $("#reg_btn").click(()=> {
+            $("#input_form").removeClass("hidden");
+            $("#form_btn").text("Register");
+        });
+
+        $("#form_btn").click(()=> {
+            if($("#form_btn").text()==="Register")
+            {
+                $.ajax({
+                    url: 'validate_name.php',
+                    type: 'post',
+                    data: {  name: $("#username").val()  },
+                    success: (data) => {
+                        if (data === 'valid')
+                        {
+                            $("#error").addClass('hidden');
+                            user_name = $("#username").val();
+
+                            $.ajax({
+                                url: 'register.php',
+                                type: 'post',
+                                data: {
+                                    name: $("#username").val(),
+                                    password: $("#password").val()
+                                },
+                                success: (data) =>
+                                {
+                                    if (data === 'success') {
+                                        alert("Registration successful");
+                                        $("#form_btn").text("Login");
+                                        $("#change_name").removeClass('hidden');
+                                    }
+                                    else {
+                                        $("#error").removeClass('hidden');
+                                        $("#error").text(data);
+                                    }
+                                }
+                            });
+                        }
+                        else if(data === 'invalid'){
+                            $("#error").removeClass('hidden');
+                            $("#error").text("Username should be at least 5 characters");
+                        }
+
+                    }
+                });
+            }
+            else {
+                $.ajax({
+                    url: 'login.php',
+                    type: 'post',
+                    data: {
+                        name: $("#username").val(),
+                        password: $("#password").val()
+                    },
+                    success: (data) =>
+                    {
+                        if (data === 'success') {
+                            user_name=$("#username").val();
+                            $("#name_panel").addClass('hidden');
+                            $("#room_selection_panel").removeClass('hidden');
+                            $("#error").addClass('hidden');
+                            $("#change_name").removeClass('hidden');
+                        }
+                        else {
+                            $("#error").removeClass('hidden');
+                            $("#error").text(data);
+                        }
+                    }
+                });
+            }
+        });
+
+        $("#room_btn").click(() => {
+            if($("#room").val()!==''){
+                room_id = $("#room").val();
+                $("#chat_panel").removeClass('hidden');
+                get_data();
+            }
+            else
+                alert("Select Channel");
+        });
+
+        $("#change_name").click(() =>{
+            window.location.href="logout.php";
+        });
+
+        $("#message").keypress((event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                $("#send").click();
+            }
+        });
+
+        $("#send").click(() => {
+            $.ajax({
+                url: 'validate_message.php',
+                type: 'post',
+                data: {
+                    message: $("#message").val(),
+                },
+                success:(data) => {
+                  if(data==="valid") {
+                      $.ajax({
+                          url: 'save_message.php',
+                          type: 'post',
+                          data: {
+                              name: user_name,
+                              message: $("#message").val(),
+                              room: room_id
+                          },
+                          success:(data) => {
+                              $("#chat_log").text($("#chat_log").val() + user_name + ': ' + $("#message").val()+ "\n");
+                              $("#message").val('');
+                          }
+                      });
+                  }
+                  else if(data==="invalid")
+                      alert("Couldn't send message [Bad word(s) detected / Empty]");
+                }
+            });
+        });
+
+        setInterval( get_data, 3000);
+        function get_data() {
+            if(!$("#chat_panel").hasClass("hidden")) {
+                $.ajax({
+                    url: 'get_messages.php',
+                    type: 'post',
+                    data: {
+                        room:room_id,
+                        user:user_name
+                    },
+                    success: (data, status) => {
+                        let parsed = JSON.parse(data);
+                        let newChatroom = '';
+                        for (let i = 0; i < parsed.length; i++) {
+                            newChatroom += parsed[i].name + ': ' + parsed[i].message + "\n";
+                        }
+                        $("#chat_log").text(newChatroom);
+
+                        if(!$('#chat_log').is(":hover")) {
+                            $("#chat_log").animate( {
+                                scrollTop:$("#chat_log")[0].scrollHeight - $("#chat_log").height()
+                            },500);
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    function get_cookie(cookie_name){
+        // credit: stackoverflow
+        const re = new RegExp(`(?<=${cookie_name}=)[^;]*`);
+        try{
+            return document.cookie.match(re)[0]; // Will raise TypeError if cookie is not found
+        }
+        catch{
+            return false;
+        }
+    }
+
+</script>
+
+</body>
+</html>
